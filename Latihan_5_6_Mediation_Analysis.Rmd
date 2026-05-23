@@ -10,6 +10,9 @@ output:
     theme: cosmo
     highlight: tango
     number_sections: true
+editor_options: 
+  markdown: 
+    wrap: sentence
 ---
 
 ```{r setup, include=FALSE}
@@ -23,7 +26,8 @@ knitr::opts_chunk$set(
 
 # Pendahuluan
 
-Pada latihan tantangan ini, kita melakukan *Mediation Analysis* secara komprehensif menggunakan dataset `framing` dari pustaka `mediation`. Dataset ini berasal dari studi klasik Brader, Valentino, dan Suhay (2008) mengenai bagaimana framing berita mempengaruhi opini politik (imigrasi) melalui jalur emosi.
+Pada latihan tantangan ini, kita melakukan *Mediation Analysis* secara komprehensif menggunakan dataset `framing` dari pustaka `mediation`.
+Dataset ini berasal dari studi klasik Brader, Valentino, dan Suhay (2008) mengenai bagaimana framing berita mempengaruhi opini politik (imigrasi) melalui jalur emosi.
 
 ## Install & Load Packages
 
@@ -43,27 +47,29 @@ library(ggdag)
 data(framing)
 ```
 
----
+------------------------------------------------------------------------
 
 # 1. Identifikasi Variabel
 
 > **1. Identifikasi variabel treatment (X), mediator (M), dan outcome (Y) yang relevan berdasarkan dokumentasi.**
 
-Berdasarkan dokumentasi `?framing` dan eksperimen dari dataset:
-- **Treatment (X) = `treat`**: Apakah peserta terpapar berita dengan *framing* negatif tentang imigrasi (1) atau kelompok kontrol (0).
+Berdasarkan dokumentasi `?framing` dan eksperimen dari dataset: - **Treatment (X) = `treat`**: Apakah peserta terpapar berita dengan *framing* negatif tentang imigrasi (1) atau kelompok kontrol (0).
 - **Mediator (M) = `emo`**: Tingkat emosi / kecemasan (*anxiety*) peserta setelah membaca berita (skala bersambung).
-- **Outcome (Y) = `cong_mesg`**: Minat perilaku politik (apakah peserta bersedia mengirim pesan ke anggota dewan mengenai masalah imigrasi, 1=Ya, 0=Tidak). *(Alternatif Y yang juga valid adalah `immigr` atau opini tentang imigrasi).*
+- **Outcome (Y) = `cong_mesg`**: Minat perilaku politik (apakah peserta bersedia mengirim pesan ke anggota dewan mengenai masalah imigrasi, 1=Ya, 0=Tidak).
+*(Alternatif Y yang juga valid adalah `immigr` atau opini tentang imigrasi).*
 
----
+------------------------------------------------------------------------
 
 # 2. Pendekatan Baron-Kenny
 
 > **2. Bangun tiga model regresi Baron-Kenny dan estimasi a, b, c, dan c'.**
 
-Pendekatan Baron-Kenny klasik melibatkan tiga model regresi:
-1. **Model Total Effect (c):** Efek X ke Y.
-2. **Model Mediator (a):** Efek X ke M.
-3. **Model Outcome (c', b):** Efek gabungan X dan M ke Y.
+Pendekatan Baron-Kenny klasik melibatkan tiga model regresi: 1.
+**Model Total Effect (c):** Efek X ke Y.
+2.
+**Model Mediator (a):** Efek X ke M.
+3.
+**Model Outcome (c', b):** Efek gabungan X dan M ke Y.
 
 Kita juga menyertakan variabel kontrol demografis umum seperti `age`, `educ`, `gender`, dan `income` untuk menghindari *confounding*.
 
@@ -93,7 +99,7 @@ cat("c  (Total Effect X ke Y)        :", round(path_c, 4), "\n")
 cat("c' (Direct Effect X ke Y)       :", round(path_c_prime, 4), "\n")
 ```
 
----
+------------------------------------------------------------------------
 
 # 3. Mediation Analysis (Bootstrapping)
 
@@ -118,7 +124,7 @@ med_out <- mediate(
 summary(med_out)
 ```
 
----
+------------------------------------------------------------------------
 
 # 4. Proportion Mediated & Interpretasi
 
@@ -126,15 +132,15 @@ summary(med_out)
 
 Berdasarkan output `summary(med_out)` di atas, kita dapat melihat metrik utama (nilai pastinya bisa sedikit berfluktuasi akibat *seed* bootstrap, umumnya bernilai sekitar):
 
-- **ACME (Average Causal Mediation Effect):** ~ 0.08 (Ini setara dengan efek $a \times b$). Ini berarti *framing* meningkatkan probabilitas pesan ke anggota dewan sebesar ~8 poin persentase **secara eksklusif melalui emosi (kecemasan)**.
-- **ADE (Average Direct Effect):** ~ 0.01 (Ini adalah $c'$). Efek langsung *framing* tanpa melalui emosi adalah nyaris 0 dan tidak signifikan.
-- **Total Effect:** ~ 0.09 (Total gabungan ACME + ADE).
+- **ACME (Average Causal Mediation Effect):** \~ 0.08 (Ini setara dengan efek $a \times b$). Ini berarti *framing* meningkatkan probabilitas pesan ke anggota dewan sebesar \~8 poin persentase **secara eksklusif melalui emosi (kecemasan)**.
+- **ADE (Average Direct Effect):** \~ 0.01 (Ini adalah $c'$). Efek langsung *framing* tanpa melalui emosi adalah nyaris 0 dan tidak signifikan.
+- **Total Effect:** \~ 0.09 (Total gabungan ACME + ADE).
 - **Prop. Mediated:** Secara rata-rata, angkanya **mendekati 0.85 hingga 1.0 (85% - 100%)**.
 
-**Interpretasi:**
-Sebagian besar (hingga seluruh) efek kausal dari *framing* berita terhadap peningkatan partisipasi politik (*mengirim pesan*) **dimediasi oleh emosi**. Artinya, *framing* negatif memotivasi tindakan politik *karena* ia memicu kecemasan (emosi) pembacanya, bukan karena argumen rasional langsung dari berita tersebut.
+**Interpretasi:** Sebagian besar (hingga seluruh) efek kausal dari *framing* berita terhadap peningkatan partisipasi politik (*mengirim pesan*) **dimediasi oleh emosi**.
+Artinya, *framing* negatif memotivasi tindakan politik *karena* ia memicu kecemasan (emosi) pembacanya, bukan karena argumen rasional langsung dari berita tersebut.
 
----
+------------------------------------------------------------------------
 
 # 5. Sensitivity Analysis
 
@@ -150,14 +156,16 @@ summary(sens_out)
 plot(sens_out, main = "Sensitivity Analysis for ACME")
 ```
 
-**Penjelasan:**
-1. **Pada nilai $\rho$ berapa ACME menjadi 0 atau tidak signifikan?**
-   Dari plot sensitivitas dan summary, kita perhatikan pada titik $\rho$ (*rho*) bernilai **sekitar 0.3 atau 0.4**, garis estimasi efek mediasi akan menyentuh nol (0). Nilai eksaknya dapat dilihat dari output teks: *"rho at which ACME = 0"*.
-2. **Apa Implikasinya?**
-   Jika ada sebuah variabel "tersembunyi" (misal kepribadian bawaan pasien yang membuat ia mudah cemas **sekaligus** lebih aktif berpolitik) yang menyebabkan error term dari Model Mediator dan Model Outcome berkorelasi sebesar $\rho \approx 0.35$, maka kesimpulan bahwa "Emosi memediasi partisipasi politik" **gugur** (efeknya menjadi nol).
-   Implikasinya, hasil mediasi ini **cukup sensitif** (atau moderat) terhadap bias pembaur tak teramati. Peneliti harus berhati-hati membuat klaim kuat kecuali mereka yakin tidak ada *confounder* lain yang tersisa dengan tingkat korelasi $\rho > 0.35$.
+**Interpretasi Visual Plot Sensitivitas (Sensitivity Analysis for ACME):**
+- **Sumbu-X (Sensitivity Parameter $\rho$):** Menunjukkan tingkat korelasi antara *error term* pada model mediator dan model outcome. Jika $\rho = 0$, diasumsikan tidak ada *unobserved confounder* (pembaur tersembunyi).
+- **Sumbu-Y (Average Mediation Effect):** Menunjukkan estimasi nilai ACME. Garis putus-putus horizontal adalah nilai ACME estimasi awal kita (sekitar $\sim 0.08$ pada $\rho = 0$).
+- **Kurva dan Pita Abu-abu:** Kurva hitam solid adalah estimasi ACME yang menurun seiring dengan membesarnya nilai $\rho$, dan pita abu-abu adalah selang kepercayaannya (95% CI).
+- **Pada nilai $\rho$ berapa ACME menjadi 0 atau tidak signifikan?**
+Dari plot yang dihasilkan, kurva estimasi efek dan pita kepercayaannya memotong garis solid horizontal nol ($Y=0$) ketika nilai parameter $\rho$ berada di kisaran **0.3 hingga 0.4** (tepatnya di sekitar 0.35). Pada titik ini, efek mediasi tidak lagi ada.
+- **Apa Implikasinya?** Jika di dunia nyata ada variabel "tersembunyi" (misalnya sifat fanatisme politik partisipan) yang tidak diukur, yang membuat seseorang lebih gampang cemas sekaligus lebih gampang vokal berpolitik—sehingga menimbulkan korelasi *error* sebesar $\sim 0.35$—maka seluruh kesimpulan bahwa "emosi memediasi perilaku politik" secara kausal **akan gugur** (karena efek mediasinya menjadi nol).
+Peneliti harus berhati-hati membuat klaim kuat karena hasil mediasi ini cukup sensitif/rentan terhadap keberadaan pembaur tak teramati.
 
----
+------------------------------------------------------------------------
 
 # 6. Diagram Path dengan Estimasi
 
@@ -213,7 +221,10 @@ ggplot() +
   theme(plot.title = element_text(hjust = 0.5, face = "bold", size=14))
 ```
 
-**Keterangan Diagram:**
-- **Jalur $a$ (Treatment $\rightarrow$ Mediator):** Efek positif dan sangat signifikan. Peserta di *treatment* (berita framing negatif) rata-rata mengalami peningkatan kecemasan ($emo$).
-- **Jalur $b$ (Mediator $\rightarrow$ Outcome):** Efek positif dan signifikan. Tingkat kecemasan yang lebih tinggi memicu keinginan bertindak ($cong\_mesg$).
-- **Jalur $c'$ (Direct Effect):** Nyaris $0$. Tanpa melalui jalur emosi, *framing* tidak memotivasi tindakan peserta sama sekali. Pemicu utamanya adalah emosi.
+**Keterangan Diagram:** - **Jalur** $a$ (Treatment $\rightarrow$ Mediator): Efek positif dan sangat signifikan.
+Peserta di *treatment* (berita framing negatif) rata-rata mengalami peningkatan kecemasan ($emo$).
+- **Jalur** $b$ (Mediator $\rightarrow$ Outcome): Efek positif dan signifikan.
+Tingkat kecemasan yang lebih tinggi memicu keinginan bertindak ($cong\_mesg$).
+- **Jalur** $c'$ (Direct Effect): Nyaris $0$.
+Tanpa melalui jalur emosi, *framing* tidak memotivasi tindakan peserta sama sekali.
+Pemicu utamanya adalah emosi.

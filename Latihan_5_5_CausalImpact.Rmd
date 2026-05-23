@@ -10,6 +10,9 @@ output:
     theme: cosmo
     highlight: tango
     number_sections: true
+editor_options: 
+  markdown: 
+    wrap: sentence
 ---
 
 ```{r setup, include=FALSE}
@@ -23,7 +26,8 @@ knitr::opts_chunk$set(
 
 # Pendahuluan
 
-Latihan ini menggunakan package `CausalImpact` yang dikembangkan oleh Google. `CausalImpact` menggunakan model *Bayesian Structural Time-Series* (BSTS) untuk memprediksi kontrafaktual (apa yang akan terjadi jika tidak ada intervensi) dengan memanfaatkan variabel kontrol yang tidak terpengaruh intervensi.
+Latihan ini menggunakan package `CausalImpact` yang dikembangkan oleh Google.
+`CausalImpact` menggunakan model *Bayesian Structural Time-Series* (BSTS) untuk memprediksi kontrafaktual (apa yang akan terjadi jika tidak ada intervensi) dengan memanfaatkan variabel kontrol yang tidak terpengaruh intervensi.
 
 ## Install & Load Packages
 
@@ -39,7 +43,7 @@ library(CausalImpact)
 library(zoo)
 ```
 
----
+------------------------------------------------------------------------
 
 # 1. Menjalankan Kode CausalImpact
 
@@ -77,34 +81,45 @@ summary(impact)
 
 *(Output numerik persisnya akan sedikit bervariasi bergantung environment, namun estimasinya akan sangat mendekati parameter yang kita tentukan).*
 
----
+------------------------------------------------------------------------
 
 # 2. Interpretasi Hasil
 
 > **1. Berapa estimasi rata-rata efek intervensi per periode?**
 
-Estimasi rata-rata efek (Absolute Effect) per periode akan bernilai **sekitar ~8.0**. Hal ini dikarenakan dalam proses generasi data (*Data Generating Process*), kita sengaja menambahkan nilai `+8` pada respons mulai baris ke-150. Model *CausalImpact* berhasil mendeteksi besaran efek ini dengan akurat di tabel *summary* pada kolom `Absolute effect (Average)`.
+Estimasi rata-rata efek (Absolute Effect) per periode akan bernilai **sekitar \~8.0**.
+Hal ini dikarenakan dalam proses generasi data (*Data Generating Process*), kita sengaja menambahkan nilai `+8` pada respons mulai baris ke-150.
+Model *CausalImpact* berhasil mendeteksi besaran efek ini dengan akurat di tabel *summary* pada kolom `Absolute effect (Average)`.
 
 > **2. Berapa total kumulatif efek selama periode post-intervensi?**
 
-Periode *post-intervensi* adalah dari $t=150$ hingga $t=200$, yang berarti mencakup **51 minggu**. 
-Total kumulatif efek dapat dihitung secara manual $51 \times 8 \approx 408$. Pada output *summary*, di baris `Cumulative` kolom `Absolute effect`, akan tertera estimasi total kumulatif di sekitar **~408**.
+Periode *post-intervensi* adalah dari $t=150$ hingga $t=200$, yang berarti mencakup **51 minggu**.
+Total kumulatif efek dapat dihitung secara manual $51 \times 8 \approx 408$.
+Pada output *summary*, di baris `Cumulative` kolom `Absolute effect`, akan tertera estimasi total kumulatif di sekitar **\~408**.
 
 > **3. Apakah efek ini signifikan secara statistik? Dari mana Anda tahu?**
 
-**Ya, sangat signifikan.** 
-Dari *summary output*, dapat dilihat dua indikator utama:
-1. **Interval Kepercayaan (95% CI):** Rentang interval tidak mencakup angka 0 (misalnya `[7.2, 8.8]`).
-2. **Tail-area probability p:** Nilai $p$-value akan sangat kecil (umumnya $p = 0.001$).
-3. **Pernyataan Tekstual (summary(impact, "report")):** Di R, laporan teks akan menyatakan probabilitas kausalnya secara eksplisit, misal: *"The probability of obtaining this effect by chance is very small (Bayesian tail-area probability p = 0.001). This means the causal effect can be considered statistically significant."*
+**Ya, sangat signifikan.** Dari *summary output*, dapat dilihat dua indikator utama: 1.
+**Interval Kepercayaan (95% CI):** Rentang interval tidak mencakup angka 0 (misalnya `[7.2, 8.8]`).
+2.
+**Tail-area probability p:** Nilai $p$-value akan sangat kecil (umumnya $p = 0.001$).
+3.
+**Pernyataan Tekstual (summary(impact, "report")):** Di R, laporan teks akan menyatakan probabilitas kausalnya secara eksplisit, misal: *"The probability of obtaining this effect by chance is very small (Bayesian tail-area probability p = 0.001). This means the causal effect can be considered statistically significant."*
 
 > **4. Mengapa kita menyertakan variabel kontrol dalam analisis, bukan hanya respons?**
 
-Tanpa variabel kontrol, model tidak akan tahu arah tren *counterfactual* (kontrafaktual). Kita mungkin melihat respons naik, tetapi **kita tidak bisa tahu apakah kenaikan tersebut benar-benar karena intervensi** atau karena memang siklus/tren alaminya sedang naik (terlihat pada data kontrol `cumsum` yang terus berfluktuasi). 
+Tanpa variabel kontrol, model tidak akan tahu arah tren *counterfactual* (kontrafaktual).
+Kita mungkin melihat respons naik, tetapi **kita tidak bisa tahu apakah kenaikan tersebut benar-benar karena intervensi** atau karena memang siklus/tren alaminya sedang naik (terlihat pada data kontrol `cumsum` yang terus berfluktuasi).
 
 Variabel kontrol (*covariate*) berfungsi memandu prediksi model. Karena variabel kontrol berkorelasi kuat dengan respons di masa sebelum intervensi (dengan bobot 0.7), model bisa berkata: *"Melihat pergerakan kontrol saat ini, respons seharusnya bergerak ke arah Y, tapi faktanya ia berada di Y+8. Berarti selisihnya adalah murni karena intervensi."*
 
----
+## Interpretasi Visual Plot CausalImpact
+Berdasarkan visualisasi plot standar `CausalImpact` (3 panel grafik vertikal) yang Anda hasilkan:
+- **Panel Pertama (`original`):** Garis hitam solid adalah nilai aktual (*response*), sedangkan garis biru putus-putus adalah prediksi kontrafaktual (apa yang akan terjadi jika tidak ada intervensi). Pada awal periode, garis aktual dan prediksi berhimpitan. Setelah garis intervensi vertikal ($t=150$), garis hitam aktual secara konsisten melampaui garis biru, membuktikan adanya efek peningkatan yang nyata.
+- **Panel Kedua (`pointwise`):** Menunjukkan efek kausal di setiap titik waktu secara absolut. Anda dapat melihat dengan jelas bahwa pasca-intervensi, selisih ini melompat dan menetap di atas nol (di kisaran angka 8).
+- **Panel Ketiga (`cumulative`):** Menunjukkan akumulasi total efek dari waktu ke waktu. Grafiknya membentuk garis lurus yang menanjak mulus pasca-intervensi, mencapai angka $\sim 400$ di akhir periode ($51 \text{ minggu} \times 8 \approx 408$). Pita bayangan biru (selang kepercayaan 95%) juga perlahan melebar, merepresentasikan akumulasi ketidakpastian.
+
+------------------------------------------------------------------------
 
 # 3. Modifikasi: Bagaimana Jika Kontrol Ikut Terdampak?
 
@@ -132,8 +147,12 @@ summary(impact_bias)
 Jika kontrol juga terdampak (*post-treatment bias*), asumsi utama *CausalImpact* — yakni **kontrol tidak boleh terpengaruh oleh treatment** — **DILANGGAR**.
 
 Apa yang akan terjadi?
-1. **Prediksi Kontrafaktual Meleset (Overestimate):** Model akan melihat variabel kontrol naik tajam pasca-intervensi dan berasumsi *"Secara alami, respons juga seharusnya ikut naik tajam"*. 
-2. **Estimasi Efek Mengecil (Underestimate) atau Hilang:** Karena model memprediksi *baseline* yang sangat tinggi, selisih antara nilai aktual dan kontrafaktual menjadi kecil. Efek asli intervensi (yang sebenarnya adalah +8) akan "terserap" oleh variabel kontrol.
-3. Hasil di tabel *summary* akan menunjukkan estimasi efek yang **sangat menyusut, tidak relevan, atau bahkan menjadi tidak signifikan**.
+1.
+**Prediksi Kontrafaktual Meleset (Overestimate):** Model akan melihat variabel kontrol naik tajam pasca-intervensi dan berasumsi *"Secara alami, respons juga seharusnya ikut naik tajam"*.
+2.
+**Estimasi Efek Mengecil (Underestimate) atau Hilang:** Karena model memprediksi *baseline* yang sangat tinggi, selisih antara nilai aktual dan kontrafaktual menjadi kecil.
+Efek asli intervensi (yang sebenarnya adalah +8) akan "terserap" oleh variabel kontrol.
+3.
+Hasil di tabel *summary* akan menunjukkan estimasi efek yang **sangat menyusut, tidak relevan, atau bahkan menjadi tidak signifikan**.
 
 **Kesimpulan Penting:** Memasukkan *covariate* yang terpengaruh oleh intervensi akan menghasilkan bias *collider* atau menghalangi (*block*) jalur kausal aslinya, sehingga mengacaukan kesimpulan *treatment effect*.

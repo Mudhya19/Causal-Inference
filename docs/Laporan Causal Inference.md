@@ -1,7 +1,9 @@
-# Laporan Dokumentasi: Identifikasi Backdoor Path (Konseptual)
+# Laporan Tugas Analisis Kausal (Causal Inference)
 
-**Tanggal:** 23 Mei 2026  
-**Topik:** Analisis Kausal - Identifikasi Backdoor Path pada DAG
+---
+
+## Latihan 1: Identifikasi Backdoor Path (Konseptual)
+
 
 ## 1. Pendahuluan
 Laporan ini merangkum hasil analisis kausal berdasarkan grafik *Directed Acyclic Graph* (DAG) yang menghubungkan variabel Rokok (R), Tar (T), dan Kanker (K). Analisis dilakukan menggunakan bahasa pemrograman R dengan pustaka `dagitty` dan `ggdag`.
@@ -60,14 +62,10 @@ Simulasi Monte Carlo dengan $n=1000$ dibuat dengan koefisien:
 - **Model Total Effect (`lm(K ~ R)`)**: Koefisien R mendekati **0.7**. Hal ini membuktikan bahwa tanpa mengontrol T, kita mendapatkan estimasi efek kausal secara total.
 - **Model Direct Effect (`lm(K ~ R + T)`)**: Koefisien R mendekati **0.3** dan Koefisien T mendekati **0.5**. Hal ini membuktikan bahwa dengan mengontrol mediator T, estimasi yang dihasilkan tereduksi menjadi efek langsungnya saja.
 
----
-*Laporan ini digenerate secara otomatis berdasarkan log eksekusi R (`.Rhistory`) dan script sumber (`Latihan_5_1_Backdoor_Path.Rmd`).*
 
----
 
-# Laporan Dokumentasi: Simpson's Paradox (Latihan 5.2)
+## Latihan 2: Simpson's Paradox
 
-**Topik:** Analisis Kausal - Simpson's Paradox, Confounder vs Mediator
 
 ## 1. Pendahuluan
 Bagian ini menganalisis fenomena Simpson's Paradox dari sebuah studi medis yang mengukur persentase kesembuhan pasien yang diberikan perlakuan (*Treatment*) berdasarkan kelompok Jenis Kelamin.
@@ -112,14 +110,10 @@ Terdapat dua skenario struktur kausal (DAG) untuk menentukan data mana yang "ben
 - **Data yang "Benar":** **Data Marginal (Keseluruhan)**
 - **Alasan Kausal:** Sebagai *mediator*, Jenis Kelamin berada pada jalur kausal efek pengobatan. Jika kita mengontrol mediator dengan melihat data per kelompok, kita akan secara artifisial memblokir dampak obat yang menjalar melalui mediator tersebut. Oleh sebab itu, untuk mendapatkan *Total Effect* yang sebenarnya, kita *tidak boleh* mengontrol mediator; maka hasil marginal (gabungan) adalah yang paling tepat. *(Tentu saja secara biologis obat tidak bisa mengubah jenis kelamin, jadi skenario ini adalah eksperimen pemikiran).*
 
----
-*Laporan bagian ini digenerate secara otomatis berdasarkan log eksekusi R (`Simpson’s Paradox.Rhistory`) dan script sumber (`Latihan_5_2_Simpsons_Paradox.Rmd`).*
 
----
 
-# Laporan Dokumentasi: Backdoor Adjustment Manual (Latihan 5.3)
+## Latihan 3: Backdoor Adjustment Manual
 
-**Topik:** Menghitung Probabilitas Intervensi dan Efek Kausal Total secara Manual
 
 ## 1. Pendahuluan
 Bagian ini mendemonstrasikan perhitungan kausal dari tabel probabilitas gabungan. Data observasional berupa proporsi digunakan untuk mengestimasi dampak intervensi (*do-calculus*).
@@ -161,14 +155,10 @@ Dengan perhitungan marginal probabilitas:
 - Estimasi Naif = $0.30 - 0.26 = \mathbf{0.04}$.
 - Hal ini menegaskan bahwa tanpa bias *confounding*, ungkapan "korelasi bukan kausasi" tertunda, dan estimasi observasi (naif) bernilai ekuivalen secara kausal.
 
----
-*Laporan bagian ini digenerate secara otomatis berdasarkan log eksekusi R (`Backdoor Adjustment Manual.Rhistory`) dan script sumber (`Latihan_5_3_Backdoor_Adjustment.Rmd`).*
 
----
 
-# Laporan Dokumentasi: Counterfactual Individu (Latihan 5.4)
+## Latihan 4: Counterfactual Individu
 
-**Topik:** Menghitung *Individual Treatment Effect* (ITE) menggunakan *Structural Causal Model* (SCM)
 
 ## 1. Pendahuluan
 Bagian ini mendemonstrasikan evaluasi kausal kontrafaktual di level individu (bernama Sari, Usia 35 tahun) menggunakan SCM yang diberikan. Observasi aktual Sari adalah ia mengonsumsi obat ($X=1$) dan kesehatannya membaik sebesar 20 poin ($Y=20$).
@@ -219,14 +209,10 @@ Namun, secara konsep dasar kausal, keduanya sangat berbeda sifat:
 - **ATE** bersifat *probabilistik* untuk populasi. Ia didapat dengan merata-ratakan atau menghapus keragaman eksogen ($E[U_Y]=0$).
 - Jika efek dari pengobatan bergantung pada usia (misal: SCM mengandung koefisien non-linier antara $X$ dan $Usia$), maka ITE Sari pasti akan berbeda dengan ATE populasinya (efek pengobatan menjadi heterogen/berbeda-beda tiap orang).
 
----
-*Laporan bagian ini digenerate secara otomatis berdasarkan log eksekusi R (`Counterfactual Individu.Rhistory`) dan script sumber (`Latihan_5_4_Counterfactual_Individu.Rmd`).*
 
----
 
-# Laporan Dokumentasi: CausalImpact — Interpretasi Output (Latihan 5.5)
+## Latihan 5: CausalImpact — Interpretasi Output
 
-**Topik:** Evaluasi Dampak Kausal menggunakan *Bayesian Structural Time-Series* (BSTS) pada Data Runtun Waktu
 
 ## 1. Pendahuluan
 Bagian ini menganalisis dampak intervensi pada data *time-series* menggunakan pustaka `CausalImpact` di R. Berdasarkan proses *Data Generating Process* (DGP), variabel kontrol dibuat mengikuti proses *random walk*, dan variabel respons dipengaruhi oleh variabel kontrol dengan tambahan efek kausal sebesar **+8** (berlaku mulai periode *post-intervention* di $t=150$ hingga $t=200$).
@@ -249,7 +235,13 @@ Efek intervensi tersebut sangat **SIGNIFIKAN**. Terdapat dua bukti kuat dari lap
 **4. Pentingnya Variabel Kontrol (*Covariate*):**
 Variabel kontrol tidak terkena dampak intervensi dan berperan sebagai "jangkar" pembanding. Tanpa kontrol, model BSTS hanya akan melihat pergerakan musiman (*random walk*) dari respons. Dengan menyertakan kontrol yang berkorelasi positif (0.7), model dapat mendeduksi arah tren kontrafaktual yang wajar: *"Jika kontrol bergerak ke A, respons seharusnya ke B. Jika respons faktanya ada di B+8, maka selisih 8 tersebut adalah efek murni intervensi."*
 
-## 3. Modifikasi: Dampak Bias Post-Treatment
+## 3. Interpretasi Visual Plot CausalImpact
+Berdasarkan *output* plot standar dari `CausalImpact` yang dihasilkan (tiga panel grafik):
+- **Panel Pertama (`original`):** Garis hitam solid adalah nilai aktual observasi (*response*), sedangkan garis biru putus-putus adalah prediksi kontrafaktual (apa yang akan terjadi jika tidak ada intervensi). Pada awal periode, garis aktual dan prediksi berhimpitan. Setelah garis batas intervensi (garis vertikal putus-putus di $t=150$), garis hitam aktual secara konsisten berada di atas garis biru, membuktikan adanya efek peningkatan yang nyata.
+- **Panel Kedua (`pointwise`):** Menunjukkan efek kausal di setiap titik waktu secara absolut (selisih antara observasi aktual dikurangi kontrafaktual). Pasca-intervensi, selisih ini melompat dari area angka nol ke area di atas nol (di kisaran angka 8).
+- **Panel Ketiga (`cumulative`):** Menunjukkan akumulasi total dari efek intervensi dari waktu ke waktu. Grafiknya membentuk garis lurus yang menanjak mulus pasca-intervensi, mencapai sekitar angka 400 di akhir periode (sesuai perhitungan $51 \times 8 \approx 408$). Pita bayangan biru (selang kepercayaan 95%) juga perlahan melebar, merepresentasikan akumulasi ketidakpastian seiring berjalannya waktu.
+
+## 4. Modifikasi: Dampak Bias Post-Treatment
 **Apa yang terjadi jika variabel kontrol ikut terpengaruh intervensi di t=150?**
 
 Jika eksperimen dimodifikasi sedemikian rupa sehingga kontrol juga ikut berubah (misal: diberi tambahan +10), maka asumsi paling krusial dalam *CausalImpact* (**variabel kontrol harus kebal intervensi**) telah **dilanggar**.
@@ -259,14 +251,10 @@ Jika eksperimen dimodifikasi sedemikian rupa sehingga kontrol juga ikut berubah 
 2. **Underestimasi Efek Kausal:** Akibat prediksi kontrafaktual yang terlalu tinggi, jarak antara hasil aktual dan prediksi menjadi sangat sempit (atau bahkan nol). Efek intervensi seolah "terserap" oleh pergerakan palsu kontrol.
 3. Laporan summary `CausalImpact` akan menunjukkan bahwa **efek menjadi tidak signifikan**, mereduksi temuan kausal menjadi sekadar artifak korelasi palsu (bias *collider*).
 
----
-*Laporan bagian ini digenerate secara otomatis berdasarkan log eksekusi R (`CausalImpact — Interpretasi Output.Rhistory`) dan script sumber (`Latihan_5_5_CausalImpact.Rmd`).*
 
----
 
-# Laporan Dokumentasi: Mediation Analysis Lengkap (Latihan 5.6)
+## Latihan 6 (Tantangan): Mediation Analysis Lengkap
 
-**Topik:** Analisis Mediasi Kausal Menggunakan `mediation` Package pada Eksperimen Framing Berita
 
 ## 1. Identifikasi Variabel Utama
 Berdasarkan dokumentasi dataset `framing` (eksperimen Brader, Valentino, dan Suhay, 2008), kita mendefinisikan tiga variabel utama untuk analisis mediasi kausal:
@@ -294,10 +282,15 @@ Analisis lebih robust dilakukan menggunakan fungsi `mediate()` dengan 1000 itera
 - **Proportion Mediated:** Menghitung rasio ACME terhadap Total Effect. Karena $ADE$ nyaris nol, proporsi yang termediasi bernilai sangat tinggi, yaitu berkisar **85% hingga nyaris 100%**.
 - **Interpretasi:** Hal ini membuktikan terjadinya *Full Mediation* (Mediasi Penuh). Emosi kecemasan adalah "mesin penggerak" utama partisipasi politik dalam eksperimen ini. Tanpa melalui kebangkitan emosi, paparan *framing* negatif sama sekali tidak berdampak memotivasi orang untuk berpartisipasi dalam politik.
 
-## 5. Sensitivity Analysis
+## 5. Sensitivity Analysis (Uji Sensitivitas)
 Uji sensitivitas mengevaluasi seberapa rentan kesimpulan mediasi terhadap asumsi "tidak ada pembaur yang tak teramati" (*Sequential Ignorability*).
-- **Temuan Uji (Nilai $\rho$):** Output `medsens` dan plot menunjukkan bahwa ACME akan menyentuh nol (tidak signifikan) ketika parameter korelasi error $\rho$ berada di kisaran **0.3 hingga 0.4**.
-- **Implikasi Kausal:** Jika terdapat variabel "tersembunyi" (misalnya sifat agresivitas bawaan responden) yang membuat peserta mudah merasa cemas sekaligus lebih vokal berpolitik—sehingga menyebabkan error term di model M dan Y berkorelasi sebesar 0.35—maka seluruh kesimpulan ACME akan gugur. Kesimpulannya, klaim efek mediasi emosi ini cukup sensitif/rentan terhadap kemungkinan adanya *unobserved confounder*.
+
+**Interpretasi Visual Plot Sensitivitas (Sensitivity Analysis for ACME):**
+- **Sumbu-X (Sensitivity Parameter $\rho$):** Menunjukkan tingkat korelasi antara *error term* pada model mediator dan model outcome. Jika $\rho = 0$, diasumsikan tidak ada *unobserved confounder* (pembaur tersembunyi).
+- **Sumbu-Y (Average Mediation Effect):** Menunjukkan estimasi nilai ACME. Garis putus-putus horizontal adalah nilai ACME estimasi awal kita (sekitar $\sim 0.08$ pada $\rho = 0$).
+- **Kurva dan Pita Abu-abu:** Kurva hitam solid adalah estimasi ACME yang menurun seiring dengan membesarnya nilai $\rho$, dan pita abu-abu adalah selang kepercayaannya (95% CI).
+- **Temuan Kritis (Titik Potong Nol):** Kurva estimasi efek dan pita kepercayaannya memotong garis solid horizontal nol ($Y=0$) ketika nilai parameter $\rho$ berada di kisaran **0.3 hingga 0.4** (tepatnya sekitar 0.35).
+- **Implikasi Kausal:** Jika di dunia nyata ada variabel "tersembunyi" (misalnya sifat fanatisme politik partisipan) yang tidak diukur, yang membuat seseorang lebih gampang cemas (M) sekaligus lebih gampang vokal berpolitik (Y)—sehingga menimbulkan korelasi *error* sebesar $\sim 0.35$—maka seluruh klaim bahwa "emosi memediasi perilaku politik" secara kausal **akan gugur** (efeknya menjadi nol). Singkatnya, temuan mediasi dari eksperimen ini cukup rentan terhadap keberadaan pembaur yang tak teramati.
 
 ## 6. Diagram Path (Koefisien Causal)
 Diagram kausal mengilustrasikan mekanisme pengaruh $treat \rightarrow emo \rightarrow cong\_mesg$:
@@ -306,5 +299,18 @@ Diagram kausal mengilustrasikan mekanisme pengaruh $treat \rightarrow emo \right
 2. **Jalur $b$ ($M \rightarrow Y$):** Bernilai positif kuat. Rasa *anxiety* yang tinggi mendorong keinginan mengirim pesan ke kongres.
 3. **Jalur $c'$ ($X \rightarrow Y$, Direct Effect):** Bernilai $\approx 0$. Pesan rasional dari framing berita tidak memotivasi partisipasi politik sama sekali jika tanpa adanya emosi kecemasan.
 
+
 ---
-*Laporan bagian ini digenerate secara otomatis berdasarkan log eksekusi R (`Mediation Analysis Lengkap.Rhistory`) dan script sumber (`Latihan_5_6_Mediation_Analysis.Rmd`).*
+
+## 📚 Daftar Pustaka & Source Code (GitHub)
+
+Seluruh hasil analisis, diagram kausal, serta perhitungan di dalam laporan ini dikompilasi secara otomatis menggunakan bahasa pemrograman R. Anda dapat mengecek source code lengkap (*R Markdown*) beserta *log eksekusi* (*.Rhistory*) untuk mereproduksi hasil-hasil di atas secara langsung melalui repositori GitHub berikut ini:
+
+| Latihan | Topik Pembahasan | Tautan Kode Sumber (.Rmd) |
+| :---: | :--- | :--- |
+| **Latihan 1** | Identifikasi Backdoor Path pada DAG | [`Latihan_5_1_Backdoor_Path.Rmd`](https://github.com/Mudhya19/Causal-Inference/blob/main/Latihan_5_1_Backdoor_Path.Rmd) |
+| **Latihan 2** | Simpson's Paradox & Confounder vs Mediator | [`Latihan_5_2_Simpsons_Paradox.Rmd`](https://github.com/Mudhya19/Causal-Inference/blob/main/Latihan_5_2_Simpsons_Paradox.Rmd) |
+| **Latihan 3** | Backdoor Adjustment & Intervensi Do-Calculus | [`Latihan_5_3_Backdoor_Adjustment.Rmd`](https://github.com/Mudhya19/Causal-Inference/blob/main/Latihan_5_3_Backdoor_Adjustment.Rmd) |
+| **Latihan 4** | Counterfactual Individu & Individual Treatment Effect | [`Latihan_5_4_Counterfactual_Individu.Rmd`](https://github.com/Mudhya19/Causal-Inference/blob/main/Latihan_5_4_Counterfactual_Individu.Rmd) |
+| **Latihan 5** | CausalImpact pada Time-Series & Analisis Bias | [`Latihan_5_5_CausalImpact.Rmd`](https://github.com/Mudhya19/Causal-Inference/blob/main/Latihan_5_5_CausalImpact.Rmd) |
+| **Latihan 6** | Mediation Analysis Lengkap dengan Uji Sensitivitas | [`Latihan_5_6_Mediation_Analysis.Rmd`](https://github.com/Mudhya19/Causal-Inference/blob/main/Latihan_5_6_Mediation_Analysis.Rmd) |
