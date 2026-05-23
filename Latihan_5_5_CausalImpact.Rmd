@@ -1,0 +1,139 @@
+---
+title: "Latihan 5.5: CausalImpact — Interpretasi Output"
+author: ""
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: cosmo
+    highlight: tango
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center"
+)
+```
+
+# Pendahuluan
+
+Latihan ini menggunakan package `CausalImpact` yang dikembangkan oleh Google. `CausalImpact` menggunakan model *Bayesian Structural Time-Series* (BSTS) untuk memprediksi kontrafaktual (apa yang akan terjadi jika tidak ada intervensi) dengan memanfaatkan variabel kontrol yang tidak terpengaruh intervensi.
+
+## Install & Load Packages
+
+```{r packages}
+if (!requireNamespace("CausalImpact", quietly = TRUE)) {
+  install.packages("CausalImpact")
+}
+if (!requireNamespace("zoo", quietly = TRUE)) {
+  install.packages("zoo")
+}
+
+library(CausalImpact)
+library(zoo)
+```
+
+---
+
+# 1. Menjalankan Kode CausalImpact
+
+Berikut adalah kode untuk men-generate data dengan intervensi +8 pada respons mulai periode (minggu) ke-150:
+
+```{r run-model}
+set.seed(1)
+n <- 200
+
+# Membuat timeline mingguan
+t <- seq.Date(as.Date("2024-01-01"), by = "week", length.out = n)
+
+# Variabel kontrol (random walk + 50)
+kontrol <- cumsum(rnorm(n, 0, 1)) + 50
+
+# Respons bergantung pada kontrol + noise
+respons <- 0.7 * kontrol + rnorm(n, 0, 2)
+
+# Menambahkan efek intervensi (+8) mulai observasi ke-150
+respons[150:n] <- respons[150:n] + 8
+
+# Membentuk objek time-series (zoo)
+data_ci <- zoo(data.frame(respons, kontrol), order.by = t)
+
+# Menjalankan CausalImpact
+pre.period <- c(t[1], t[149])
+post.period <- c(t[150], t[n])
+
+impact <- CausalImpact(data_ci, pre.period, post.period)
+
+# Plot dan Summary
+plot(impact)
+summary(impact)
+```
+
+*(Output numerik persisnya akan sedikit bervariasi bergantung environment, namun estimasinya akan sangat mendekati parameter yang kita tentukan).*
+
+---
+
+# 2. Interpretasi Hasil
+
+> **1. Berapa estimasi rata-rata efek intervensi per periode?**
+
+Estimasi rata-rata efek (Absolute Effect) per periode akan bernilai **sekitar ~8.0**. Hal ini dikarenakan dalam proses generasi data (*Data Generating Process*), kita sengaja menambahkan nilai `+8` pada respons mulai baris ke-150. Model *CausalImpact* berhasil mendeteksi besaran efek ini dengan akurat di tabel *summary* pada kolom `Absolute effect (Average)`.
+
+> **2. Berapa total kumulatif efek selama periode post-intervensi?**
+
+Periode *post-intervensi* adalah dari $t=150$ hingga $t=200$, yang berarti mencakup **51 minggu**. 
+Total kumulatif efek dapat dihitung secara manual $51 \times 8 \approx 408$. Pada output *summary*, di baris `Cumulative` kolom `Absolute effect`, akan tertera estimasi total kumulatif di sekitar **~408**.
+
+> **3. Apakah efek ini signifikan secara statistik? Dari mana Anda tahu?**
+
+**Ya, sangat signifikan.** 
+Dari *summary output*, dapat dilihat dua indikator utama:
+1. **Interval Kepercayaan (95% CI):** Rentang interval tidak mencakup angka 0 (misalnya `[7.2, 8.8]`).
+2. **Tail-area probability p:** Nilai $p$-value akan sangat kecil (umumnya $p = 0.001$).
+3. **Pernyataan Tekstual (summary(impact, "report")):** Di R, laporan teks akan menyatakan probabilitas kausalnya secara eksplisit, misal: *"The probability of obtaining this effect by chance is very small (Bayesian tail-area probability p = 0.001). This means the causal effect can be considered statistically significant."*
+
+> **4. Mengapa kita menyertakan variabel kontrol dalam analisis, bukan hanya respons?**
+
+Tanpa variabel kontrol, model tidak akan tahu arah tren *counterfactual* (kontrafaktual). Kita mungkin melihat respons naik, tetapi **kita tidak bisa tahu apakah kenaikan tersebut benar-benar karena intervensi** atau karena memang siklus/tren alaminya sedang naik (terlihat pada data kontrol `cumsum` yang terus berfluktuasi). 
+
+Variabel kontrol (*covariate*) berfungsi memandu prediksi model. Karena variabel kontrol berkorelasi kuat dengan respons di masa sebelum intervensi (dengan bobot 0.7), model bisa berkata: *"Melihat pergerakan kontrol saat ini, respons seharusnya bergerak ke arah Y, tapi faktanya ia berada di Y+8. Berarti selisihnya adalah murni karena intervensi."*
+
+---
+
+# 3. Modifikasi: Bagaimana Jika Kontrol Ikut Terdampak?
+
+> **5. Apa yang terjadi jika variabel kontrol juga terdampak intervensi? Coba modifikasi kode agar kontrol juga terpengaruh di t=150, dan amati apa yang berubah pada hasilnya.**
+
+## Kode Modifikasi (Kontrol Terdampak)
+
+```{r control-affected}
+# Modifikasi: Variabel kontrol ikut terdampak intervensi sebesar +10
+kontrol_bias <- kontrol
+kontrol_bias[150:n] <- kontrol_bias[150:n] + 10
+
+# Respons tetap diberikan tambahan +8
+respons_bias <- 0.7 * kontrol_bias + rnorm(n, 0, 2)
+respons_bias[150:n] <- respons_bias[150:n] + 8
+
+data_ci_bias <- zoo(data.frame(respons_bias, kontrol_bias), order.by = t)
+impact_bias <- CausalImpact(data_ci_bias, pre.period, post.period)
+
+summary(impact_bias)
+```
+
+## Analisis Perubahan:
+
+Jika kontrol juga terdampak (*post-treatment bias*), asumsi utama *CausalImpact* — yakni **kontrol tidak boleh terpengaruh oleh treatment** — **DILANGGAR**.
+
+Apa yang akan terjadi?
+1. **Prediksi Kontrafaktual Meleset (Overestimate):** Model akan melihat variabel kontrol naik tajam pasca-intervensi dan berasumsi *"Secara alami, respons juga seharusnya ikut naik tajam"*. 
+2. **Estimasi Efek Mengecil (Underestimate) atau Hilang:** Karena model memprediksi *baseline* yang sangat tinggi, selisih antara nilai aktual dan kontrafaktual menjadi kecil. Efek asli intervensi (yang sebenarnya adalah +8) akan "terserap" oleh variabel kontrol.
+3. Hasil di tabel *summary* akan menunjukkan estimasi efek yang **sangat menyusut, tidak relevan, atau bahkan menjadi tidak signifikan**.
+
+**Kesimpulan Penting:** Memasukkan *covariate* yang terpengaruh oleh intervensi akan menghasilkan bias *collider* atau menghalangi (*block*) jalur kausal aslinya, sehingga mengacaukan kesimpulan *treatment effect*.

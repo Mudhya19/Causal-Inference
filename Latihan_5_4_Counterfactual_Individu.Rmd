@@ -1,0 +1,160 @@
+---
+title: "Latihan 5.4: Counterfactual Individu"
+author: ""
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: cosmo
+    highlight: tango
+    number_sections: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE
+)
+```
+
+# Pendahuluan
+
+Latihan ini mendemonstrasikan bagaimana menyelesaikan masalah
+**Counterfactual** pada level individu menggunakan 3 langkah mutlak dari
+*Structural Causal Model* (SCM): 1. **Abduction** (Mendeduksi variabel
+eksogen yang tidak terobservasi dari data observasi). 2. **Action**
+(Mengubah SCM sesuai intervensi kontrafaktual). 3. **Prediction**
+(Menghitung hasil baru menggunakan variabel eksogen spesifik individu).
+
+## Model SCM yang Diberikan
+
+$$ Usia = 35 \text{ (konstanta untuk individu Sari)} $$ $$ X = U_X $$
+$$ Y = 12X - 0.1(Usia)^2 + U_Y $$ *Di mana* $U_Y \sim N(0, 3)$
+
+Data observasi Sari: - Mengonsumsi obat A: $X = 1$ - Kondisi membaik 20
+poin: $Y = 20$
+
+------------------------------------------------------------------------
+
+# Langkah 1: Abduction
+
+> **1. Lakukan abduction: Dari observasi Y=20 dan X=1, tentukan nilai**
+> $U_Y$ untuk Sari.
+
+Kita menggunakan persamaan SCM $Y$ dan memasukkan nilai yang sudah
+diobservasi untuk menemukan faktor intrinsik / kondisi bawaan Sari yang
+tidak teramati ($U_Y$).
+
+$$ Y = 12X - 0.1(Usia)^2 + U_Y $$ $$ 20 = 12(1) - 0.1(35)^2 + U_Y $$
+$$ 20 = 12 - 0.1(1225) + U_Y $$ $$ 20 = 12 - 122.5 + U_Y $$
+$$ 20 = -110.5 + U_Y $$ $$ U_Y = 20 + 110.5 = 130.5 $$
+
+```{r abduction}
+# Perhitungan di R
+Y_obs <- 20
+X_obs <- 1
+Usia <- 35
+
+U_Y_Sari <- Y_obs - (12 * X_obs) + (0.1 * Usia^2)
+cat("Nilai U_Y untuk Sari adalah:", U_Y_Sari, "\n")
+```
+
+------------------------------------------------------------------------
+
+# Langkah 2: Action
+
+> **2. Lakukan action: Bayangkan skenario kontrafaktual di mana Sari
+> tidak mendapat obat (X=0).**
+
+Dalam tahap *action*, kita mengubah (*mutilate*) persamaan asal SCM yang
+menentukan $X$. Persamaan $X = U_X$ dihapus dan diganti dengan
+intervensi: $$ X = 0 $$
+
+*(Kondisi intrinsik Sari, yakni* $Usia = 35$ dan $U_Y = 130.5$, tetap
+konstan / tidak terpengaruh oleh intervensi pada $X$).
+
+------------------------------------------------------------------------
+
+# Langkah 3: Prediction
+
+> **3. Lakukan prediction: Berapa nilai Y kontrafaktual untuk Sari?**
+
+Kita menghitung ulang $Y$ (sering disimbolkan $Y_{X=0}$ atau $Y(0)$)
+menggunakan SCM yang telah dimodifikasi (intervensi $X=0$) dengan nilai
+$U_Y$ khusus milik Sari.
+
+$$ Y(0) = 12(0) - 0.1(35)^2 + 130.5 $$
+$$ Y(0) = 0 - 122.5 + 130.5 = 8.0 $$
+
+```{r prediction}
+# Perhitungan Y kontrafaktual di R
+X_cf <- 0
+Y_cf <- (12 * X_cf) - (0.1 * Usia^2) + U_Y_Sari
+cat("Nilai Y kontrafaktual (jika Sari tidak minum obat) adalah:", Y_cf, "\n")
+```
+
+------------------------------------------------------------------------
+
+# Langkah 4: Individual Treatment Effect (ITE)
+
+> **4. Berapa Individual Treatment Effect (ITE) untuk Sari?**
+
+ITE adalah selisih antara hasil dengan perlakuan (faktual, karena Sari
+minum obat) dan hasil tanpa perlakuan (kontrafaktual).
+
+$$ ITE = Y(1) - Y(0) $$ $$ ITE = 20 - 8 = 12 $$
+
+```{r ite}
+ITE <- Y_obs - Y_cf
+cat("Individual Treatment Effect (ITE) Sari adalah:", ITE, "\n")
+```
+
+------------------------------------------------------------------------
+
+# Langkah 5: Analisis ITE vs ATE
+
+> **5. Jelaskan mengapa ITE Sari berbeda dari efek kausal rata-rata
+> (ATE) populasi yang dihitung dengan**
+> $E[Y \mid do(X = 1)] - E[Y \mid do(X = 0)]$.
+
+## Jawaban:
+
+Mari kita hitung ATE secara matematis berdasarkan SCM:
+$$ ATE = E[Y \mid do(X=1)] - E[Y \mid do(X=0)] $$
+$$ ATE = E[12(1) - 0.1(Usia)^2 + U_Y] - E[12(0) - 0.1(Usia)^2 + U_Y] $$
+Karena ekspektasi linear, nilai konstanta dan rata-rata dapat
+didistribusikan. (Diketahui $U_Y \sim N(0,3)$, sehingga $E[U_Y] = 0$).
+$$ ATE = (12 - 0.1 E[Usia^2] + 0) - (0 - 0.1 E[Usia^2] + 0) $$
+$$ ATE = 12 $$
+
+**Penjelasan Kritis:** Secara matematis pada model **spesifik ini**,
+nilai ITE Sari (12) **TIDAK BERBEDA** dengan ATE populasi (12). Keduanya
+bernilai 12. Hal ini terjadi karena SCM yang diberikan murni bersifat
+**linier dan aditif** tanpa ada *heterogeneous treatment effect*
+(misalnya: tidak ada interaksi antara $X$ dengan $Usia$, atau $X$ dengan
+$U_Y$). Konstanta pengali $X$ bersifat homogen untuk siapapun.
+
+Namun, **secara konseptual (in general)** pertanyaan ini bermaksud
+menguji pemahaman bahwa: 1. **ITE bersifat deterministik & personal:**
+ITE menggunakan nilai *unobserved heterogenity* individu yang unik
+($U_Y = 130.5$ untuk Sari) serta atribut spesifik individu
+($Usia = 35$). 2. **ATE bersifat probabilitas & rata-rata:** ATE
+dihitung dengan merata-ratakan (*marginalisasi*) seluruh variasi eksogen
+di populasi ($E[U_Y] = 0$ dan distribusi $Usia$). ATE menghilangkan
+karakteristik unik individu. 3. **Jika ada non-linieritas (Heterogeneous
+Effect):** Seandainya persamaan SCM adalah $Y = 12X \times Usia + U_Y$,
+maka ITE Sari akan sangat berbeda dengan ATE, karena efek obat akan
+bergantung kuat pada usia spesifik individu.
+
+*(Kesimpulan: Untuk menjawab dosen, jelaskan bahwa meski secara numerik
+di soal ini hasilnya sama-sama 12 karena modelnya linier, secara
+konseptual ITE berbeda dengan ATE karena ITE menggunakan distribusi
+tersyarat individu (*$U=u$) hasil deduksi observasi masa lalu
+(abduction), sedangkan ATE merata-ratakan seluruh distribusi $U$ di
+populasi yang belum diketahui).

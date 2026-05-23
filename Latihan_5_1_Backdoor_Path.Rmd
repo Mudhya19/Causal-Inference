@@ -1,0 +1,389 @@
+---
+title: "Latihan 5.1: Identifikasi Backdoor Path (Konseptual)"
+author: ""
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: cosmo
+    highlight: tango
+    number_sections: true
+    df_print: kable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+# Pendahuluan
+
+Pada latihan ini kita akan menganalisis **backdoor path** pada DAG (Directed Acyclic Graph) berikut:
+
+```         
+Rokok (R)
+│         │
+▼         ▼
+Tar (T) ──► Kanker (K)
+```
+
+**Keterangan:**
+
+- **R (Rokok):** Exposure — status merokok
+- **T (Tar):** Mediator — kandungan tar di paru-paru
+- **K (Kanker):** Outcome — kejadian kanker
+- **Tidak ada confounder tersembunyi**
+
+## Install & Load Packages
+
+```{r packages}
+if (!requireNamespace("dagitty", quietly = TRUE)) {
+  install.packages("dagitty")
+}
+if (!requireNamespace("ggdag", quietly = TRUE)) {
+  install.packages("ggdag")
+}
+
+library(dagitty)
+library(ggplot2)
+library(ggdag)
+```
+
+------------------------------------------------------------------------
+
+# Definisi & Visualisasi DAG
+
+## Definisi DAG
+
+DAG didefinisikan dengan tiga hubungan kausal:
+
+| Edge  | Interpretasi                                                        |
+|-------|---------------------------------------------------------------------|
+| R → T | Rokok menyebabkan akumulasi tar di paru-paru                        |
+| T → K | Tar menyebabkan kanker                                              |
+| R → K | Rokok memiliki efek langsung terhadap kanker (mekanisme selain tar) |
+
+```{r dag-define}
+dag <- dagitty('dag {
+  R [exposure, pos="0,0"]
+  T [pos="1,1"]
+  K [outcome, pos="2,0"]
+  
+  R -> T
+  T -> K
+  R -> K
+}')
+
+print(dag)
+```
+
+## Visualisasi DAG (dagitty)
+
+```{r dag-plot-basic, fig.cap="DAG: Rokok → Tar → Kanker (dagitty)"}
+plot(dag)
+title("DAG: Rokok (R) → Tar (T) → Kanker (K)")
+```
+
+## Visualisasi DAG (ggdag)
+
+```{r dag-plot-ggdag, fig.cap="DAG: Rokok → Tar → Kanker (ggdag)"}
+dag_ggdag <- dagify(
+  T ~ R,
+  K ~ T + R,
+  exposure = "R",
+  outcome  = "K",
+  labels   = c(
+    R = "Rokok",
+    T = "Tar",
+    K = "Kanker"
+  )
+)
+
+ggdag(dag_ggdag, text = TRUE, use_labels = "label") +
+  theme_dag() +
+  ggtitle("DAG: Rokok → Tar → Kanker")
+```
+
+------------------------------------------------------------------------
+
+# Pertanyaan 1: Semua Path dari R ke K
+
+> **Daftarkan semua path dari R ke K. Mana yang merupakan backdoor path?**
+
+## Analisis Path
+
+```{r paths}
+all_paths <- paths(dag, from = "R", to = "K")
+print(all_paths)
+```
+
+## Jawaban
+
+Terdapat **dua path** dari R ke K:
+
+| No  | Path      | Tipe              | Keterangan                         |
+|-----|-----------|-------------------|------------------------------------|
+| 1   | R → K     | Causal (direct)   | Path langsung dari rokok ke kanker |
+| 2   | R → T → K | Causal (indirect) | Path melalui mediator Tar          |
+
+### Apakah ada Backdoor Path?
+
+**TIDAK ADA backdoor path.**
+
+Penjelasan:
+
+- **Backdoor path** adalah path non-kausal yang menghubungkan exposure (R) ke outcome (K) melalui *common cause* (ancestor bersama / confounder).
+- Ciri backdoor path: terdapat panah yang **mengarah ke** exposure (← masuk ke R).
+- Dalam DAG ini, **tidak ada variabel yang memiliki panah menuju R**.
+- Kedua path mengalir **searah panah** (dari R menuju K), sehingga keduanya adalah **causal paths**.
+
+------------------------------------------------------------------------
+
+# Pertanyaan 2: Identifikasi Efek Total
+
+> **Apakah efek total R → K teridentifikasi tanpa adjustment? Jelaskan.**
+
+## Adjustment Set untuk Total Effect
+
+```{r adj-total}
+adj_total <- adjustmentSets(dag, exposure = "R", outcome = "K", effect = "total")
+print(adj_total)
+```
+
+## Jawaban
+
+**YA**, efek total R → K **teridentifikasi tanpa adjustment** (tanpa mengontrol variabel apapun).
+
+### Alasan:
+
+1.  **Tidak ada backdoor path** dari R ke K → tidak ada bias confounding yang perlu dihilangkan.
+
+2.  **Efek total** = efek langsung (R → K) + efek tidak langsung (R → T → K). Kedua path ini adalah path kausal yang **ingin kita masukkan** dalam estimasi efek total.
+
+3.  Output `adjustmentSets()` menunjukkan **himpunan kosong `{}`**, yang berarti tidak perlu mengontrol variabel apapun.
+
+> ⚠️ **PENTING:** Kita **TIDAK BOLEH** mengontrol T untuk mengestimasi efek total, karena T adalah mediator. Mengontrol T akan **memblokir** path kausal R → T → K, sehingga kita hanya mendapatkan direct effect, bukan total effect.
+
+------------------------------------------------------------------------
+
+# Pertanyaan 3: Estimasi Direct Effect
+
+> **Jika kita ingin mengestimasi direct effect R → K (yang tidak melalui Tar), variabel apa yang harus dikontrol? Mengapa ini merupakan keputusan yang rumit secara kausal?**
+
+## Adjustment Set untuk Direct Effect
+
+```{r adj-direct}
+adj_direct <- adjustmentSets(dag, exposure = "R", outcome = "K", effect = "direct")
+print(adj_direct)
+```
+
+## Jawaban
+
+Untuk mengestimasi **direct effect** R → K, kita harus **mengontrol T (Tar)**.
+
+### Mengapa harus kontrol T?
+
+- Direct effect adalah efek R → K yang **tidak melewati** mediator T.
+- Untuk mengisolasi efek langsung ini, kita perlu **memblokir** path tidak langsung R → T → K.
+- Cara memblokir path tersebut: **mengontrol T**.
+
+### Mengapa ini rumit secara kausal?
+
+#### 1. Dilema Mediator vs Confounder
+
+T adalah **mediator**, bukan confounder. Mengontrol mediator **mengubah interpretasi** estimasi secara fundamental — dari total effect menjadi direct effect. Ini adalah keputusan substansial, bukan sekedar teknis statistik.
+
+#### 2. Controlled vs Natural Direct Effect
+
+| Jenis | Definisi | Masalah |
+|----|----|----|
+| **Controlled Direct Effect (CDE)** | Efek R pada K jika T ditetapkan pada nilai tertentu ($T = t_0$) | Hasilnya bisa **berbeda** tergantung nilai $t_0$ yang dipilih |
+| **Natural Direct Effect (NDE)** | Efek R pada K jika T tetap pada nilai yang terjadi **secara alami** tanpa intervensi | Memerlukan asumsi *cross-world counterfactual* yang **tidak bisa diverifikasi** |
+
+#### 3. Risiko Intermediate Confounding
+
+Dalam DAG ini tidak ada confounder T–K selain R. Namun dalam **praktik nyata**, sering ada confounder antara mediator dan outcome yang juga dipengaruhi exposure. Jika ada variabel U sehingga R → U dan U → T serta U → K, mengontrol T tanpa U akan menyebabkan **bias**.
+
+#### 4. Relevansi Substantif
+
+Apakah masuk akal secara biologis untuk "**menahan kadar tar konstan** sambil mengubah status merokok"? Intervensi hipotetis ini mungkin **tidak realistis secara fisik**, sehingga direct effect mungkin bukan kuantitas yang bermakna untuk kebijakan kesehatan.
+
+------------------------------------------------------------------------
+
+# Pertanyaan 4: Verifikasi dengan dagitty
+
+> **Gunakan dagitty di R untuk verifikasi jawaban Anda.**
+
+## Kode Verifikasi
+
+```{r verify-dagitty}
+library(dagitty)
+
+dag <- dagitty('dag {
+  R -> T
+  T -> K
+  R -> K
+}')
+```
+
+### Total Effect — Adjustment Sets
+
+```{r verify-total}
+cat("Adjustment sets untuk TOTAL effect:\n")
+adjustmentSets(dag, exposure = "R", outcome = "K", effect = "total")
+```
+
+**Interpretasi:** Himpunan kosong `{}` → **tidak perlu adjustment** untuk total effect. ✅
+
+### Direct Effect — Adjustment Sets
+
+```{r verify-direct}
+cat("Adjustment sets untuk DIRECT effect:\n")
+adjustmentSets(dag, exposure = "R", outcome = "K", effect = "direct")
+```
+
+**Interpretasi:** `{ T }` → **kontrol Tar** untuk direct effect. ✅
+
+### Semua Path
+
+```{r verify-paths}
+cat("Semua path dari R ke K:\n")
+paths(dag, from = "R", to = "K")
+```
+
+### Implied Conditional Independencies
+
+```{r verify-ci}
+cat("Implied conditional independencies:\n")
+impliedConditionalIndependencies(dag)
+```
+
+**Interpretasi:** Tidak ada conditional independence — semua variabel terhubung secara kausal. ✅
+
+### Ancestors & Descendants
+
+```{r verify-anc-desc}
+cat("Ancestors dari K:", paste(ancestors(dag, "K"), collapse = ", "), "\n")
+cat("Descendants dari R:", paste(descendants(dag, "R"), collapse = ", "), "\n")
+```
+
+------------------------------------------------------------------------
+
+# Bonus: Simulasi Data
+
+Untuk mengkonfirmasi analisis DAG, kita simulasikan data sesuai struktur kausal yang didefinisikan.
+
+## Parameter Simulasi
+
+| Parameter              | Nilai                       |
+|------------------------|-----------------------------|
+| Direct effect R → K    | **0.3**                     |
+| Effect R → T           | **0.8**                     |
+| Effect T → K           | **0.5**                     |
+| **Total effect R → K** | **0.3 + (0.8 × 0.5) = 0.7** |
+
+```{r simulate}
+set.seed(42)
+n <- 1000
+
+# Simulasi sesuai DAG
+R     <- rnorm(n)
+T_var <- 0.8 * R + rnorm(n, sd = 0.5)
+K     <- 0.3 * R + 0.5 * T_var + rnorm(n, sd = 0.5)
+
+sim_data <- data.frame(R = R, T = T_var, K = K)
+
+head(sim_data)
+```
+
+## Estimasi Total Effect (tanpa kontrol T)
+
+```{r model-total}
+model_total <- lm(K ~ R, data = sim_data)
+summary(model_total)
+```
+
+```{r total-result}
+cat("Koefisien R (estimasi total effect):", round(coef(model_total)["R"], 4), "\n")
+cat("Nilai sebenarnya: 0.7\n")
+```
+
+## Estimasi Direct Effect (dengan kontrol T)
+
+```{r model-direct}
+model_direct <- lm(K ~ R + T, data = sim_data)
+summary(model_direct)
+```
+
+```{r direct-result}
+cat("Koefisien R (estimasi direct effect):", round(coef(model_direct)["R"], 4), "\n")
+cat("Nilai sebenarnya: 0.3\n\n")
+cat("Koefisien T (estimasi effect T → K):", round(coef(model_direct)["T"], 4), "\n")
+cat("Nilai sebenarnya: 0.5\n")
+```
+
+## Perbandingan Hasil
+
+```{r comparison-table}
+hasil <- data.frame(
+  Model = c("K ~ R (Total Effect)", "K ~ R + T (Direct Effect)"),
+  `Koefisien R` = c(
+    round(coef(model_total)["R"], 4),
+    round(coef(model_direct)["R"], 4)
+  ),
+  `Nilai Sebenarnya` = c(0.7, 0.3),
+  Keterangan = c(
+    "Tanpa kontrol T → total effect",
+    "Dengan kontrol T → direct effect"
+  ),
+  check.names = FALSE
+)
+
+knitr::kable(hasil, caption = "Perbandingan Estimasi Total vs Direct Effect")
+```
+
+------------------------------------------------------------------------
+
+# Kesimpulan
+
+```{r conclusion, echo=FALSE}
+cat("
+=== RINGKASAN ===
+
+1. PATH: Terdapat 2 path dari R ke K:
+   - R → K (langsung)
+   - R → T → K (melalui mediator)
+   Tidak ada backdoor path.
+
+2. TOTAL EFFECT: Teridentifikasi tanpa adjustment.
+   Tidak perlu mengontrol variabel apapun.
+
+3. DIRECT EFFECT: Kontrol T (Tar).
+   Ini rumit karena T adalah mediator, bukan confounder.
+   Melibatkan isu cross-world counterfactual dan
+   intervensi hipotetis yang tidak realistis.
+
+4. SIMULASI mengkonfirmasi:
+   - Tanpa kontrol T → total effect ≈ 0.7 ✓
+   - Dengan kontrol T → direct effect ≈ 0.3 ✓
+")
+```
+
+| Pertanyaan | Jawaban |
+|----|----|
+| Backdoor paths? | **Tidak ada** |
+| Total effect teridentifikasi? | **Ya**, tanpa adjustment |
+| Direct effect: kontrol apa? | **Kontrol T (Tar)** |
+| Kenapa rumit? | Mediator ≠ confounder; cross-world counterfactual; intervensi tidak realistis |
+
+------------------------------------------------------------------------
+
+*Notebook ini dibuat sebagai latihan analisis kausal menggunakan DAG dan package `dagitty` di R.*

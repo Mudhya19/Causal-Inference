@@ -1,0 +1,215 @@
+---
+title: "Latihan 5.3: Backdoor Adjustment Manual"
+author: ""
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: cosmo
+    highlight: tango
+    number_sections: true
+    df_print: kable
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  fig.align = "center"
+)
+```
+
+# Pendahuluan
+
+Latihan ini mendemonstrasikan perhitungan kausal secara manual dari tabel probabilitas gabungan (joint probability). Kita diminta mengestimasi efek total Merokok terhadap Sakit Jantung dan menguji pemahaman terkait **Backdoor Criterion**.
+
+## Data Studi
+
+Berdasarkan soal, data studi yang tersedia dalam format proporsi gabungan $P(X, Z, Y)$:
+
+```{r data}
+# Membuat dataframe dari probabilitas
+data_studi <- data.frame(
+  X_Merokok = c("Ya", "Ya", "Ya", "Ya", "Tidak", "Tidak", "Tidak", "Tidak"),
+  Z_Kolesterol = c("Ya", "Ya", "Tidak", "Tidak", "Ya", "Ya", "Tidak", "Tidak"),
+  Y_SakitJantung = c("Ya", "Tidak", "Ya", "Tidak", "Ya", "Tidak", "Ya", "Tidak"),
+  Proporsi = c(0.10, 0.15, 0.05, 0.20, 0.08, 0.12, 0.05, 0.25)
+)
+
+data_studi
+```
+
+Total proporsi adalah: `r sum(data_studi$Proporsi)`
+
+## DAG (Directed Acyclic Graph)
+
+Berdasarkan soal, asumsi DAG-nya adalah:
+1. Merokok $\rightarrow$ Kolesterol Tinggi $\rightarrow$ Sakit Jantung
+2. Merokok $\rightarrow$ Sakit Jantung
+
+Struktur Kausal (DAG):
+$$ X \rightarrow Z \rightarrow Y $$
+$$ X \rightarrow Y $$
+
+*Dalam DAG ini, $X$ (Merokok) adalah exposure, $Y$ (Sakit Jantung) adalah outcome, dan $Z$ (Kolesterol Tinggi) adalah mediator.*
+
+---
+
+# Pertanyaan 1: Backdoor Criterion
+
+> **1. Tentukan apakah Kolesterol Tinggi memenuhi backdoor criterion untuk estimasi efek total Merokok -> Sakit Jantung.**
+
+## Jawaban:
+
+**TIDAK.** Kolesterol Tinggi ($Z$) **TIDAK MEMENUHI** *backdoor criterion*.
+
+**Penjelasan:**
+Sebuah set variabel $S$ memenuhi *backdoor criterion* untuk mengestimasi efek kausal total dari $X$ ke $Y$ jika:
+1. Tidak ada variabel di dalam $S$ yang merupakan turunan (*descendant*) dari $X$.
+2. $S$ memblokir semua *backdoor path* (jalur yang masuk ke $X$ melalui tanda panah berlawanan arah).
+
+Pada DAG ini:
+- Kolesterol Tinggi ($Z$) adalah turunan langsung dari Merokok ($X$), ditunjukkan dengan panah $X \rightarrow Z$. Ini melanggar syarat pertama.
+- Variabel $Z$ berada pada jalur kausal berarah ($X \rightarrow Z \rightarrow Y$), sehingga ia adalah **mediator**.
+- Tidak ada *backdoor path* (tidak ada panah yang masuk ke $X$).
+
+Oleh karena itu, himpunan *backdoor adjustment* yang valid adalah himpunan kosong `{}`, artinya **kita tidak boleh mengontrol variabel apapun** untuk mendapatkan efek total.
+
+---
+
+# Pertanyaan 2 & 3: Menghitung Probabilitas Intervensi $do(X)$
+
+> **2. Hitung $P(Sakit Jantung = Ya \mid do(Merokok = Ya))$ menggunakan backdoor adjustment formula.**
+> **3. Hitung $P(Sakit Jantung = Ya \mid do(Merokok = Tidak))$.**
+
+Karena *backdoor set* yang valid adalah himpunan kosong `{}`, maka *backdoor adjustment formula* disederhanakan menjadi probabilitas kondisional biasa (observasional):
+
+$$ P(Y \mid do(X)) = P(Y \mid X) $$
+
+Formula kondisional yang kita gunakan:
+$$ P(Y \mid X) = \frac{P(Y, X)}{P(X)} $$
+
+## Perhitungan Probabilitas Marginal
+
+```{r marginal_prob}
+# P(X = Ya)
+P_X_Ya <- sum(data_studi$Proporsi[data_studi$X_Merokok == "Ya"])
+# P(X = Tidak)
+P_X_Tidak <- sum(data_studi$Proporsi[data_studi$X_Merokok == "Tidak"])
+
+cat("P(Merokok = Ya) =", P_X_Ya, "\n")
+cat("P(Merokok = Tidak) =", P_X_Tidak, "\n")
+```
+
+## Jawaban 2: $P(Y = Ya \mid do(X = Ya))$
+
+```{r do_ya}
+# P(Y = Ya, X = Ya)
+P_Y_Ya_X_Ya <- sum(data_studi$Proporsi[data_studi$X_Merokok == "Ya" & 
+                                         data_studi$Y_SakitJantung == "Ya"])
+
+# P(Y = Ya | do(X = Ya)) = P(Y = Ya | X = Ya)
+P_Y_do_X_Ya <- P_Y_Ya_X_Ya / P_X_Ya
+
+cat("P(Y = Ya, X = Ya) =", P_Y_Ya_X_Ya, "\n")
+cat("P(Y = Ya | do(X = Ya)) = ", P_Y_Ya_X_Ya, "/", P_X_Ya, "=", P_Y_do_X_Ya, "\n")
+```
+
+**Hasil:** $P(Sakit Jantung = Ya \mid do(Merokok = Ya)) = 0.30$ (atau 30%)
+
+## Jawaban 3: $P(Y = Ya \mid do(X = Tidak))$
+
+```{r do_tidak}
+# P(Y = Ya, X = Tidak)
+P_Y_Ya_X_Tidak <- sum(data_studi$Proporsi[data_studi$X_Merokok == "Tidak" & 
+                                            data_studi$Y_SakitJantung == "Ya"])
+
+# P(Y = Ya | do(X = Tidak)) = P(Y = Ya | X = Tidak)
+P_Y_do_X_Tidak <- P_Y_Ya_X_Tidak / P_X_Tidak
+
+cat("P(Y = Ya, X = Tidak) =", P_Y_Ya_X_Tidak, "\n")
+cat("P(Y = Ya | do(X = Tidak)) = ", P_Y_Ya_X_Tidak, "/", P_X_Tidak, "=", P_Y_do_X_Tidak, "\n")
+```
+
+**Hasil:** $P(Sakit Jantung = Ya \mid do(Merokok = Tidak)) = 0.26$ (atau 26%)
+
+---
+
+# Pertanyaan 4: Average Causal Effect (ACE)
+
+> **4. Hitung Average Causal Effect merokok terhadap sakit jantung.**
+
+*Average Causal Effect* (ACE) didefinisikan sebagai selisih probabilitas intervensi:
+
+$$ ACE = P(Y = Ya \mid do(X = Ya)) - P(Y = Ya \mid do(X = Tidak)) $$
+
+```{r ace}
+ACE <- P_Y_do_X_Ya - P_Y_do_X_Tidak
+
+cat("ACE =", P_Y_do_X_Ya, "-", P_Y_do_X_Tidak, "=", ACE, "\n")
+```
+
+**Hasil:** *Average Causal Effect* (ACE) adalah **0.04** (Risiko sakit jantung meningkat sebesar 4 poin persentase akibat merokok).
+
+---
+
+# Pertanyaan 5: Perbandingan dengan Estimasi Naif
+
+> **5. Bandingkan dengan estimasi naif $P(SakitJantung = Ya \mid Merokok = Ya) - P(SakitJantung = Ya \mid Merokok = Tidak)$. Apakah ada bias?**
+
+## Jawaban:
+
+Mari kita bandingkan rumusnya:
+
+- **Estimasi Naif:** $P(Y=Ya \mid X=Ya) - P(Y=Ya \mid X=Tidak)$
+- **Estimasi Causal (ACE):** $P(Y=Ya \mid do(X=Ya)) - P(Y=Ya \mid do(X=Tidak))$
+
+Seperti yang kita buktikan pada Pertanyaan 2 dan 3, karena tidak ada *backdoor path* (himpunan *backdoor* adalah himpunan kosong), maka probabilitas kondisional secara matematis persis sama dengan probabilitas intervensional:
+$P(Y \mid do(X)) = P(Y \mid X)$
+
+Oleh karena itu:
+**Estimasi Naif = Estimasi Causal = 0.30 - 0.26 = 0.04**
+
+**Apakah ada bias?**
+**TIDAK ADA BIAS.** 
+
+Karena dalam sistem ini tidak terdapat variabel *confounder* tersembunyi maupun *backdoor path* yang terbuka yang dapat membaurkan hubungan antara Merokok dan Sakit Jantung, maka data observasional secara langsung dapat digunakan untuk menyimpulkan efek kausal. Estimasi naif (korelasi) persis sama dengan estimasi kausal (kausasi). 
+
+*(Ingat: Aturan emas "Correlation is not Causation" dapat dilanggar (Korelasi = Kausasi) HANYA jika tidak ada confounding, seperti yang terjadi pada DAG tanpa backdoor path di atas).*
+
+---
+
+# (Opsional) Mengapa Adjustment Menggunakan Mediator Itu Salah?
+
+Bagaimana jika kita secara salah merespons Pertanyaan 1 dengan mengatakan "Z memenuhi backdoor criterion" dan kita melakukan *adjustment* menggunakan rumus:
+$$ \sum_{Z} P(Y \mid X, Z) P(Z) $$
+
+```{r wrong_adjustment}
+# Ini adalah perhitungan yang SALAH jika tujuan kita adalah Total Effect.
+# Menghitung P(Z)
+P_Z_Ya <- sum(data_studi$Proporsi[data_studi$Z_Kolesterol == "Ya"])
+P_Z_Tidak <- sum(data_studi$Proporsi[data_studi$Z_Kolesterol == "Tidak"])
+
+# Menghitung P(Y=Ya | X=Ya, Z=z)
+P_Y_Ya_X_Ya_Z_Ya <- 0.10 / (0.10 + 0.15)
+P_Y_Ya_X_Ya_Z_Tidak <- 0.05 / (0.05 + 0.20)
+
+# Menghitung P(Y=Ya | X=Tidak, Z=z)
+P_Y_Ya_X_Tidak_Z_Ya <- 0.08 / (0.08 + 0.12)
+P_Y_Ya_X_Tidak_Z_Tidak <- 0.05 / (0.05 + 0.25)
+
+# Kalkulasi adjustment yang salah (Controlled Direct Effect semu)
+Wrong_do_X_Ya <- (P_Y_Ya_X_Ya_Z_Ya * P_Z_Ya) + (P_Y_Ya_X_Ya_Z_Tidak * P_Z_Tidak)
+Wrong_do_X_Tidak <- (P_Y_Ya_X_Tidak_Z_Ya * P_Z_Ya) + (P_Y_Ya_X_Tidak_Z_Tidak * P_Z_Tidak)
+
+Wrong_ACE <- Wrong_do_X_Ya - Wrong_do_X_Tidak
+
+cat("ACE Aktual (Benar) =", ACE, "\n")
+cat("ACE Bias (Jika salah kontrol Z) =", Wrong_ACE, "\n")
+```
+
+**Kesimpulan Tambahan:**
+Mengontrol variabel mediator (Kolesterol) akan "memblokir" porsi efek tidak langsung dari rokok ke penyakit jantung. Hal ini menyebabkan efek total (*Total Effect*) diremehkan (*underestimated*) dari 0.04 menjadi 0.018. Inilah alasan mendasar mengapa pemahaman *Backdoor Criterion* sangat krusial.
