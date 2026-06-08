@@ -1,6 +1,6 @@
 ---
 title: "Analisis Kausal dengan PC Algorithm dan GES"
-author: "Penulis"
+author: "Muhammad Dhiauddin - 25917024"
 date: "`r Sys.Date()`"
 output:
   html_document:
