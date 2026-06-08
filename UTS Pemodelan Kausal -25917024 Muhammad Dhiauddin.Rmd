@@ -2,10 +2,12 @@
 title: "Analisis Kausal dengan PC Algorithm dan GES"
 author: "Penulis"
 date: "`r Sys.Date()`"
-output: 
+output:
   html_document:
     toc: true
     theme: readable
+  pdf_document:
+    toc: true
 ---
 
 ```{r setup, include=FALSE}
@@ -132,7 +134,7 @@ pc_fit <- pc(
 )
 
 cat("=== SUMMARY PC ALGORITHM ===\n")
-print(summary(pc_fit))
+summary(pc_fit)
 
 # Adjacency matrix dari CPDAG PC
 # amat[i,j]=1, amat[j,i]=0 → edge i → j  (directed)
@@ -149,8 +151,7 @@ cat(sprintf("Edge undirected (─): %d\n", n_undirected))
 
 # Plot CPDAG PC
 dev.new(width=10, height=7)
-plot(pc_fit,
-     main  = "CPDAG – PC Algorithm (α = 0.05)")
+plot(pc_fit, main  = "CPDAG – PC Algorithm (α = 0.05)")
 ```
 
 ### Eksekusi GES (Greedy Equivalence Search)
@@ -210,8 +211,7 @@ cat(sprintf("Edge undirected (─): %d\n", n_undirected_ges))
 
 # Plot CPDAG GES
 dev.new(width=10, height=7)
-plot(ges_fit$essgraph,
-     main  = "CPDAG – GES (Greedy Equivalence Search)")
+plot(ges_fit$essgraph, main  = "CPDAG – GES (Greedy Equivalence Search)")
 ```
 
 **Penjelasan Singkat Parameter:** Kode di atas sudah menyertakan penjelasan yang sangat baik secara in-line. PC mengandalkan `gaussCItest` (korelasi parsial Gaussian) dengan probabilitas *alpha=0.05*, yang berarti membiarkan *false positives* margin 5%. GES di sisi lain dioptimalkan via `GaussL0penObsScore` untuk mencocokkan *likelihood* data terhadap ukuran penalti kelogaritmaan yang ekuivalen dengan BIC.
@@ -252,8 +252,7 @@ cat(sprintf("\nTotal edges skeleton: %d\n", sum(amat_skel)/2))
 
 # Plot Skeleton
 dev.new(width=10, height=7)
-plot(skel_fit,
-     main  = "Skeleton – Undirected Graph (α = 0.05)")
+plot(skel_fit, main  = "Skeleton – Undirected Graph (α = 0.05)")
 
 
 # ── FUNGSI UTAMA: Identifikasi Collider dari Skeleton ────────
